@@ -1,32 +1,14 @@
-# Kernel compile workflow for personal usage
-# By Sarthak Roy (sarthakroy2002@gmail.com)
+# Kernel compile workflow
 
 name: Kernel CI
 
 on:
-  workflow_dispatch:
-    inputs:
-      device:
-          description: 'device codename (RMX2020/cancunf)'
-          required: true
-      repo:
-          description: 'Kernel source link'
-          required: true
-      branch:
-          description: 'Kernel source branch'
-          required: true
-      gki:
-          description: 'Need GKI build? (true/false)'
-          required: false 
+  push:
+    branches:
+      - android12-5.10
 
-env:
-  TZ: Asia/Kolkata
-  DEVICE: ${{ github.event.inputs.device }}
-  REPO: ${{ github.event.inputs.repo }}
-  BRANCH: ${{ github.event.inputs.branch }}
-  GKI: ${{ github.event.inputs.gki }}
-  token: ${{ secrets.TOKEN }}
-  chat_id: ${{ secrets.CHAT_ID }}
+  workflow_dispatch:
+  schedule: [cron: '0 0 * * 0']
 
 jobs:
   kernel-build:
@@ -43,21 +25,33 @@ jobs:
           ar --version
           sudo apt update
           sudo apt install -y bc bison build-essential ccache curl flex glibc-source g++-multilib gcc-multilib binutils-aarch64-linux-gnu git gnupg gperf imagemagick lib32ncurses5-dev lib32readline-dev lib32z1-dev liblz4-tool libncurses5 libncurses5-dev libsdl1.2-dev libssl-dev libwxgtk3.0-gtk3-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev python2 tmate ssh neofetch
+          sudo apt-get install repo -y
           neofetch
+          df -h
 
       - name: Lets compile
         run: |
-          git clone $REPO -b $BRANCH kernel 
+          mkdir kernel
           cd kernel
-          if [ "${DEVICE}" = "RMX2020" ]; then
-            wget https://raw.githubusercontent.com/sarthakroy2002/Scripts/main/Kernel/C3_build_script.sh
-            bash C3_build_script.sh
-          else
-            if [ "${GKI}" = "true" ]; then
-              wget https://raw.githubusercontent.com/sarthakroy2002/Scripts/main/Kernel/cancunf_gki_build_script.sh
-              bash cancunf_gki_build_script.sh
-            else
-              wget https://raw.githubusercontent.com/sarthakroy2002/Scripts/main/Kernel/cancunf_build_script.sh
-              bash cancunf_build_script.sh
-            fi
-          fi
+          repo init -u https://android.googlesource.com/kernel/manifest.git -b common-android12-5.10-lts --depth=1
+          repo sync --force-sync
+          ln -s common/build.config.gki.aarch64 build.config
+          cd common
+          sed -i "s|Image.lz4|Image.gz|g" build.config.gki.aarch64
+          wget https://gist.githubusercontent.com/sarthakroy2002/4e1c6bc5b5745168f1d47f4eb1bb25d6/raw/1a70b2aa9c401262de2dad03f8231b3f03d5325d/uncommitted.patch
+          patch -p1 < uncommitted.patch
+          cd ..
+          echo "Compile starting..."
+          bash build/build.sh
+          echo "Compilied..."
+          git clone https://github.com/sarthakroy2002/AnyKernel3 -b android12-5.10 
+          cp -r out/android12-5.10/dist/Image.gz AnyKernel3
+          cd AnyKernel3
+          zip -r9 android12-5.10-AnyKernel3.zip ./*
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: android12-5.10 Flashable Zip and Kernel Binary
+          path: |
+            kernel/AnyKernel3/android12-5.10-AnyKernel3.zip
+            kernel/out/android12-5.10/dist/Image.gz
