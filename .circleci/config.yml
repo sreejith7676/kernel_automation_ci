@@ -1,0 +1,74 @@
+version: 2.1
+
+executors:
+  kernel_executor:
+    docker:
+      - image: circleci/python:3.8
+    working_directory: ~/repo
+
+jobs:
+  kernel-build:
+    docker:
+      - image: circleci/ubuntu:22.04
+    steps:
+      - checkout
+      - run:
+          name: Initializing environment
+          command: |
+            git config --global user.name "sarthakroy2002"
+            git config --global user.email "sarthakroy2002@gmail.com"
+            df -h
+            ld --version
+            gcc -v
+            ar --version
+            sudo apt update
+            sudo apt install -y bc bison build-essential ccache curl flex glibc-source g++-multilib gcc-multilib binutils-aarch64-linux-gnu git gnupg gperf imagemagick lib32ncurses5-dev lib32readline-dev lib32z1-dev liblz4-tool libncurses5 libncurses5-dev libsdl1.2-dev libssl-dev libwxgtk3.0-gtk3-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev python2 tmate ssh neofetch
+            sudo apt-get install repo -y
+            neofetch
+            df -h
+
+      - run:
+          name: Let's compile
+          command: |
+            mkdir kernel
+            cd kernel
+            repo init -u https://android.googlesource.com/kernel/manifest.git -b common-android12-5.10-lts --depth=1
+            repo sync --force-sync
+            ln -s common/build.config.gki.aarch64 build.config
+            cd common
+            sed -i "s|Image.lz4|Image.gz|g" build.config.gki.aarch64
+            wget https://gist.githubusercontent.com/sarthakroy2002/4e1c6bc5b5745168f1d47f4eb1bb25d6/raw/1a70b2aa9c401262de2dad03f8231b3f03d5325d/uncommitted.patch
+            patch -p1 < uncommitted.patch
+            cd ..
+            echo "Compile starting..."
+            bash build/build.sh
+            echo "Compiled..."
+            git clone https://github.com/sarthakroy2002/AnyKernel3 -b android12-5.10 
+            cp -r out/android12-5.10/dist/Image.gz AnyKernel3
+            cd AnyKernel3
+            zip -r9 android12-5.10-AnyKernel3.zip ./*
+
+      - store_artifacts:
+          path: kernel/AnyKernel3/android12-5.10-AnyKernel3.zip
+          destination: android12-5.10-AnyKernel3.zip
+
+      - store_artifacts:
+          path: kernel/out/android12-5.10/dist/Image.gz
+          destination: Image.gz
+
+workflows:
+  version: 2
+  kernel-ci:
+    triggers:
+      - schedule:
+          cron: "0 0 * * 0"
+          filters:
+            branches:
+              only:
+                - android12-5.10
+    jobs:
+      - kernel-build:
+          filters:
+            branches:
+              only:
+                - android12-5.10
