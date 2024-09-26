@@ -33,7 +33,7 @@ jobs:
         run: |
           mkdir kernel
           cd kernel
-          repo init -u https://android.googlesource.com/kernel/manifest.git -b common-android12-5.10-lts --depth=1
+          repo init -u https://android.googlesource.com/kernel/manifest.git -b common-android12-5.10 --depth=1
           repo sync --force-sync
           ln -s common/build.config.gki.aarch64 build.config
           cd common
@@ -52,7 +52,7 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
-          name: android12-5.10 Flashable Zip and Kernel Binary
+          name: android12-5.10 Flashable Zip
           path: |
             kernel/AnyKernel3/android12-5.10-AnyKernel3.zip
-            kernel/out/android12-5.10/dist/Image.gz
+            #kernel/out/android12-5.10/dist/Image.gz
