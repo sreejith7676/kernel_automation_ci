@@ -40,7 +40,7 @@ jobs:
         run: |
           mkdir kernel
           cd kernel
-          ~/bin/repo init -u https://android.googlesource.com/kernel/manifest.git -b common-android12-5.10-2024-11 --depth=1
+          ~/bin/repo init -u https://android.googlesource.com/kernel/manifest.git -b common-android12-5.10-2024-08 --depth=1
           ~/bin/repo sync --force-sync
           ln -s common/build.config.gki.aarch64 build.config
           cd common
