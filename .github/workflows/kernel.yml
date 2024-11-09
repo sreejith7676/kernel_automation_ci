@@ -45,7 +45,7 @@ jobs:
           echo "Compile starting..."
           bash build/build.sh
           echo "Compilied..."
-          git clone https://github.com/sarthakroy2002/AnyKernel3 -b android12-5.10 
+          git clone https://github.com/sreejith7676/AnyKernel3 -b android12-5.10 
           cp -r out/android12-5.10/dist/Image.gz AnyKernel3
           cd AnyKernel3
           zip -r9 android12-5.10-AnyKernel3.zip ./*
